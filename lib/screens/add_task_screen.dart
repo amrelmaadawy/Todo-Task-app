@@ -1,5 +1,8 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:paymob/servise/api_service.dart';
+import 'package:http/http.dart' as http;
 import 'package:paymob/util/snakebar.dart';
 
 class AddTaskScreen extends StatefulWidget {
@@ -82,10 +85,21 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   }
 
   Future<void> updateData() async {
+    final title = titleController.text;
+    final description = descriptionController.text;
     final todo = widget.todo;
     final id = todo?['_id'];
-    final isSuccess = await ApiService.updateData(id, body);
-    if (isSuccess) {
+    final body = {
+      "title": title,
+      "description": description,
+      "is_completed": false
+    };
+    final url = 'https://api.nstack.in/v1/todos/$id';
+    final uri = Uri.parse(url);
+    final response = await http.put(uri, body: jsonEncode(body), headers: {
+      'Content-Type': 'application/json',
+    });
+    if (response.statusCode == 200) {
       titleController.text = '';
       descriptionController.text = '';
 
@@ -96,20 +110,30 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   }
 
   Future<void> submitData() async {
-    final isSuccess = await ApiService.addData(body);
-    if (isSuccess) {
-      titleController.text = '';
-      descriptionController.text = '';
-
-      Snakebar.snakeBar('created successful', Colors.green, context);
-    } else {
-      Snakebar.snakeBar('fialed to create', Colors.red, context);
-    }
-  }
-
-  Map get body {
     final title = titleController.text;
     final description = descriptionController.text;
-    return {"title": title, "description": description, "is_completed": false};
+    final body = {
+      "title": title,
+      "description": description,
+      "is_completed": false
+    };
+    const url = 'https://api.nstack.in/v1/todos';
+    final uri = Uri.parse(url);
+    final response = await http.post(uri, body: jsonEncode(body), headers: {
+      'Content-Type': 'application/json',
+    });
+    if (response.statusCode == 201) {
+      titleController.text = '';
+      descriptionController.text = '';
+      if (kDebugMode) {
+        print('created successful');
+      }
+      Snakebar.snakeBar('created successful', Colors.green, context);
+    } else {
+      if (kDebugMode) {
+        print('fialed to create');
+      }
+      Snakebar.snakeBar('fialed to create', Colors.red, context);
+    }
   }
 }
